@@ -5,8 +5,8 @@
 
 1. **Clone de repository en open de Sphero-map**
    ```bash
-   git clone https://github.com/EnwinDang/IntelligentRobotics2025.git
-   cd IntelligentRobotics2025/sphero
+   git clone https://github.com/EnwinDang/IntelligentRobotics2025/SpheroBolt_Opdracht.git
+   cd IntelligentRobotics2025/SpheroBolt_Opdracht/sphero
    ```
 
 2. **Maak en activeer een virtuele omgeving**
