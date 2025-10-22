@@ -1,20 +1,37 @@
 # IntelligentRobotics2025
-# Sphero BOLT – Automated Track Race (Raspberry Pi)
+#  Sphero BOLT – Automated Track Race (Raspberry Pi)
 
-## Uitvoerinstructies (Raspberry Pi)
+##  Installatie & Uitvoerinstructies
 
-1. **Installeer vereisten**
+1. **Clone de repository en open de Sphero-map**
    ```bash
-   sudo apt update
-   sudo apt install python3-pip bluetooth -y
-   pip install spherov2 pygame
+   git clone https://github.com/EnwinDang/IntelligentRobotics2025.git
+   cd IntelligentRobotics2025/sphero
    ```
 
-2. **Verbind de Sphero BOLT via Bluetooth**
+2. **Maak en activeer een virtuele omgeving**
+   ```bash
+   python -m venv venv
+   ```
+   - **Windows:**  
+     ```bash
+     venv\Scripts\activate
+     ```
+   - **Linux/macOS (of Raspberry Pi):**  
+     ```bash
+     source venv/bin/activate
+     ```
+
+3. **Installeer de vereiste pakketten**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Verbind de Sphero BOLT via Bluetooth**
    - Zet de BOLT aan en noteer de naam (bijv. `SB-27A5`).
    - Pair via het Bluetooth-menu of laat het script zelf scannen.
 
-3. **Voer het script uit**
+5. **Voer het script uit**
    ```bash
    python3 sphero_race.py <toy_name> <joystickIndex> <playerNumber>
    ```
@@ -23,54 +40,62 @@
    python3 sphero_race.py SB-27A5 0 1
    ```
 
-4. **Joystickbediening**
-   - 🎮 **SELECT** → kalibratie aan/uit  
-   - 🏁 **START** → start automatische race  
-   - 🔘 **1–4** → snelheidspreset (50 / 70 / 100 / 200)  
-   - 🕹️ Stick → handmatige besturing  
+---
+
+## 🎮 Joystickbediening
+| Actie | Functie |
+|--------|----------|
+| **SELECT** | Kalibratie aan/uit |
+| **START** | Start automatische race |
+| **Knoppen 1–4** | Snelheid (50 / 70 / 100 / 200) |
+| **Joystick** | Handmatige besturing (vooruit, achteruit, links, rechts) |
 
 ---
 
 ## 🧭 Kalibratiestappen
 
-1. Plaats de Sphero BOLT op de **startpositie (finishlijn, bovenaan in het midden)**.  
-2. Richt de robot zodat hij **naar rechts (oost)** kijkt → dat is **0° heading**.  
-3. Druk op **SELECT** om in kalibratiemodus te gaan (LED = roze).  
-4. Gebruik de joystick links/rechts om de richting bij te stellen.  
-5. Druk opnieuw op **SELECT** om te bevestigen (LED = groen → klaar).  
-6. Druk op **START** om de automatische track te starten.
+1. Plaats de Sphero op de **startpositie** (finishlijn bovenaan in het midden).  
+2. Richt de robot zodat hij **naar rechts (oost)** kijkt → dit is **0° heading**.  
+3. Druk op **SELECT** om kalibratiemodus te starten (LED = roze).  
+4. Gebruik de joystick links/rechts om richting te corrigeren.  
+5. Druk nogmaals op **SELECT** om te bevestigen (LED = groen).  
+6. Druk op **START** om de automatische race te starten.
 
 ---
 
 ## 🧠 Beschrijving van de aanpak
 
-- De race is opgebouwd uit **segmenten (waypoints)** die elk bestaan uit:
-  - `panels`: aantal tegels van 50 cm per stuk (afstand)
-  - `angle`: de heading in graden  
-    - 0° → rechts (vooruit)  
-    - 90° → omhoog  
-    - 180° → links  
-    - 270° → omlaag  
+- De baan is opgebouwd uit **segmenten (waypoints)** die elk bestaan uit:
+  - `panels`: aantal tegels van 50 cm  
+  - `angle`: de richting (heading in graden)
+  
+  | Richting | Graden |
+  |-----------|--------|
+  | Rechts (Oost) | 0° |
+  | Omhoog (Noord) | 90° |
+  | Links (West) | 180° |
+  | Omlaag (Zuid) | 270° |
 
-- Het script rekent elk segment om naar een **tijd (seconden)** via `SPEED_FACTOR`.  
-  De functie `make_moves()` vertaalt het pad naar `(heading, speed, duration)`.  
+- Het script vertaalt deze segmenten naar `(hoek, snelheid, duur)` via de functies  
+  `make_moves()` en `time_for_distance()`.
 
-- De route (`TRACK_PATH`) volgt een vaste baan op het parcours:  
-  rechte stukken en bochten worden automatisch uitgevoerd in volgorde.  
+- De route (`TRACK_PATH`) vormt het pad dat de Sphero autonoom aflegt op het parcours.  
 
-- **Fail-safe:** bij een fout of verbroken verbinding stopt de BOLT onmiddellijk  
+- **Fail-safe:** bij een fout of verbroken verbinding stopt de robot automatisch  
   (`set_speed(0)`) en kleurt rood (veiligheidsstatus).
 
 ---
 
 ## ⚡ Snelheidsprofiel
 
-- **TRACK_SPEED = 120** – standaard snelheid voor automatische segmenten  
-- **Handmatige snelheid:** instelbaar via joystickknoppen 1 t/m 4  
-- Snelheid kan verder gekalibreerd worden door `SPEED_FACTOR` te wijzigen  
-  (hoger = meer afstand per seconde)
+- **TRACK_SPEED = 120** – standaard snelheid voor de automatische race  
+- **Handmatige snelheden** via joystickknoppen (50 / 70 / 100 / 200)  
+- De afstand/snelheid kan worden afgesteld via `SPEED_FACTOR` (0.85 standaard)
 
 ---
 
-> 🎯 **Resultaat:** De Sphero rijdt zelfstandig het volledige parcours af via vooraf bepaalde segmenten, met correcte oriëntatie op basis van kalibratie en automatische fail-safe bij fouten.
+> 🎯 **Resultaat:** De Sphero rijdt autonoom het parcours af aan de hand van vooraf bepaalde segmenten, met correcte oriëntatie op basis van kalibratie en automatische fail-safe voor veiligheid.
 
+De path is gebaseerd op onderstaande map (50×50 cm. Totale afmeting: 5 m × 3 m).
+
+<img width="1607" height="947" alt="sphero_Parcour" src="https://github.com/user-attachments/assets/c6340f26-377d-455a-afe2-8b3c57670ddc" />
