@@ -10,7 +10,7 @@ class MovementSubscriber(Node):
 
         self.subscription = self.create_subscription(
             String,
-            'key_cmd',          # zelfde topic als publisher
+            'key_cmd',        
             self.callback,
             10
         )
@@ -19,19 +19,12 @@ class MovementSubscriber(Node):
             "Movement subscriber gestart, luistert naar 'key_cmd'."
         )
 
-        # TODO: hier kan je later seriële verbinding openen naar OpenCR
-        # bv:
-        # import serial
-        # self.serial = serial.Serial('/dev/ttyACM0', 115200, timeout=1)
 
     def callback(self, msg: String):
         direction = msg.data
 
-        # Hier zet je het om naar motorcommando's.
-        # Voor nu loggen we het gewoon:
         if direction == "forward":
             self.get_logger().info("Robot: vooruit (z)")
-            # bv: stuur D 50 50 1 via serial
         elif direction == "backward":
             self.get_logger().info("Robot: achteruit (s)")
         elif direction == "left":
