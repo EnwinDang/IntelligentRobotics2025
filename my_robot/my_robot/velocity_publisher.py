@@ -19,7 +19,7 @@ class VelocityKeyboardPublisher(Node):
         self.right_speed = 0
 
         self.step = 5          # increment
-        self.min_speed = -100  # optionele clamp
+        self.min_speed = -100 
         self.max_speed = 100
 
         self.get_logger().info(
@@ -67,7 +67,7 @@ class VelocityKeyboardPublisher(Node):
     def loop(self):
         while rclpy.ok():
             key = self._read_key()
-            if key == '\x03':  # Ctrl+C
+            if key == '\x03':  # Ctrl+C om te stoppen
                 break
 
             changed = self.update_speeds(key)
