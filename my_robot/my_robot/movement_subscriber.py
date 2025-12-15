@@ -11,7 +11,7 @@ class MovementSubscriber(Node):
     def _init_(self):
         super()._init_('movement_subscriber')
 
-        # ───────── PARAMETERS (IDENTIEK AAN velocity_subscriber) ─────────
+        # ───────── PARAMETERS ─────────
         self.declare_parameter('port', '/dev/ttyACM0')
         self.declare_parameter('baud', 57600)
         self.declare_parameter('timeout', 0.1)
@@ -22,10 +22,10 @@ class MovementSubscriber(Node):
         timeout = self.get_parameter('timeout').value
         self.speed = int(self.get_parameter('speed').value)
 
-        # ───────── SERIAL OPENEN (IDENTIEK GEDRAG) ─────────
+        # ───────── SERIAL OPENEN ─────────
         try:
             self.ser = serial.Serial(port, baudrate=baud, timeout=timeout)
-            time.sleep(2.0)  # OpenCR reset tijd
+            time.sleep(2.0)  # OpenCR reset delay
             self.get_logger().info(f"Connected to {port} @ {baud}")
         except Exception as e:
             self.ser = None
@@ -43,13 +43,13 @@ class MovementSubscriber(Node):
             f"MovementSubscriber READY (speed={self.speed})"
         )
 
-    # ───────── SERIAL WRITE (100% IDENTIEK PROTOCOL) ─────────
+    # ───────── SERIAL WRITE ─────────
     def send_command(self, cmd: str):
         if self.ser is None:
             self.get_logger().error("Serial not available")
             return
 
-        full_cmd = cmd.strip() + "\n"   # ⚠️ EXACT zoals velocity_subscriber
+        full_cmd = cmd.strip() + "\n"
         try:
             self.ser.write(full_cmd.encode())
             self.get_logger().info(f"> {full_cmd.strip()} (naar OpenCR)")
