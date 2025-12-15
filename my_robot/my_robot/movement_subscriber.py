@@ -8,8 +8,8 @@ from std_msgs.msg import String
 
 
 class MovementSubscriber(Node):
-    def _init_(self):
-        super()._init_('movement_subscriber')
+    def __init__(self):
+        super().__init__('movement_subscriber')
 
         # ───────── PARAMETERS ─────────
         self.declare_parameter('port', '/dev/ttyACM0')
@@ -18,8 +18,8 @@ class MovementSubscriber(Node):
         self.declare_parameter('speed', 30)
 
         port = self.get_parameter('port').value
-        baud = self.get_parameter('baud').value
-        timeout = self.get_parameter('timeout').value
+        baud = int(self.get_parameter('baud').value)
+        timeout = float(self.get_parameter('timeout').value)
         self.speed = int(self.get_parameter('speed').value)
 
         # ───────── SERIAL ─────────
@@ -45,9 +45,7 @@ class MovementSubscriber(Node):
         # ───────── SAFETY TIMER ─────────
         self.timer = self.create_timer(0.2, self.safety_check)
 
-        self.get_logger().info(
-            f"MovementSubscriber READY (speed={self.speed})"
-        )
+        self.get_logger().info(f"MovementSubscriber READY (speed={self.speed})")
 
     # ───────── SERIAL COMMANDS ─────────
     def send_v(self, left: int, right: int):
@@ -109,9 +107,6 @@ def main(args=None):
         rclpy.shutdown()
 
 
-if _name_ == '_main_':
+if __name__ == "__main__":
     main()
 
-
-if _name_ == "_main_":
-    main()
