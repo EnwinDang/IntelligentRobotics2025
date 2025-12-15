@@ -22,14 +22,14 @@ class MovementSubscriber(Node):
         timeout = self.get_parameter('timeout').value
         self.speed = int(self.get_parameter('speed').value)
 
-        # ───────── SERIAL OPENEN ─────────
+        # ───────── SERIAL ─────────
         try:
             self.ser = serial.Serial(port, baudrate=baud, timeout=timeout)
             time.sleep(2.0)  # OpenCR reset delay
             self.get_logger().info(f"Connected to {port} @ {baud}")
         except Exception as e:
             self.ser = None
-            self.get_logger().error(f"Failed to open serial {port}: {e}")
+            self.get_logger().error(f"Serial error: {e}")
 
         # ───────── SUBSCRIBER ─────────
         self.subscription = self.create_subscription(
@@ -43,16 +43,16 @@ class MovementSubscriber(Node):
             f"MovementSubscriber READY (speed={self.speed})"
         )
 
-    # ───────── SERIAL WRITE ─────────
-    def send_command(self, cmd: str):
+    # ───────── SERIAL SEND ─────────
+    def send_v(self, left: int, right: int):
         if self.ser is None:
             self.get_logger().error("Serial not available")
             return
 
-        full_cmd = cmd.strip() + "\n"
+        cmd = f"V {left} {right}\n"
         try:
-            self.ser.write(full_cmd.encode())
-            self.get_logger().info(f"> {full_cmd.strip()} (naar OpenCR)")
+            self.ser.write(cmd.encode())
+            self.get_logger().info(f"> {cmd.strip()} (naar OpenCR)")
         except Exception as e:
             self.get_logger().error(f"Serial write failed: {e}")
 
@@ -62,15 +62,15 @@ class MovementSubscriber(Node):
         s = self.speed
 
         if direction == "forward":
-            self.send_command(f"V {s} {s}")
+            self.send_v(s, s)
         elif direction == "backward":
-            self.send_command(f"V {-s} {-s}")
+            self.send_v(-s, -s)
         elif direction == "left":
-            self.send_command(f"V {s} {-s}")
+            self.send_v(s, -s)
         elif direction == "right":
-            self.send_command(f"V {-s} {s}")
+            self.send_v(-s, s)
         elif direction in ("stop", "idle"):
-            self.send_command("V 0 0")
+            self.send_v(0, 0)
         else:
             self.get_logger().warn(f"Onbekend commando: {direction}")
 
@@ -84,6 +84,10 @@ def main(args=None):
         pass
     node.destroy_node()
     rclpy.shutdown()
+
+
+if _name_ == '_main_':
+    main()
 
 
 if _name_ == "_main_":
