@@ -31,6 +31,9 @@ class MovementSubscriber(Node):
             self.ser = None
             self.get_logger().error(f"Serial error: {e}")
 
+        # ───────── STATE ─────────
+        self.last_cmd_time = time.time()
+
         # ───────── SUBSCRIBER ─────────
         self.subscription = self.create_subscription(
             String,
@@ -39,11 +42,14 @@ class MovementSubscriber(Node):
             10
         )
 
+        # ───────── SAFETY TIMER ─────────
+        self.timer = self.create_timer(0.2, self.safety_check)
+
         self.get_logger().info(
             f"MovementSubscriber READY (speed={self.speed})"
         )
 
-    # ───────── SERIAL SEND ─────────
+    # ───────── SERIAL COMMANDS ─────────
     def send_v(self, left: int, right: int):
         if self.ser is None:
             self.get_logger().error("Serial not available")
@@ -56,10 +62,20 @@ class MovementSubscriber(Node):
         except Exception as e:
             self.get_logger().error(f"Serial write failed: {e}")
 
+    def stop_robot(self):
+        if self.ser is None:
+            return
+        try:
+            self.ser.write(b"V 0 0\n")
+            self.get_logger().info("> V 0 0 (STOP)")
+        except Exception:
+            pass
+
     # ───────── CALLBACK ─────────
     def callback(self, msg: String):
         direction = msg.data.strip().lower()
         s = self.speed
+        self.last_cmd_time = time.time()
 
         if direction == "forward":
             self.send_v(s, s)
@@ -70,9 +86,14 @@ class MovementSubscriber(Node):
         elif direction == "right":
             self.send_v(-s, s)
         elif direction in ("stop", "idle"):
-            self.send_v(0, 0)
+            self.stop_robot()
         else:
             self.get_logger().warn(f"Onbekend commando: {direction}")
+
+    # ───────── FAILSAFE ─────────
+    def safety_check(self):
+        if time.time() - self.last_cmd_time > 0.5:
+            self.stop_robot()
 
 
 def main(args=None):
@@ -81,9 +102,11 @@ def main(args=None):
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        pass
-    node.destroy_node()
-    rclpy.shutdown()
+        node.get_logger().info("KeyboardInterrupt - stopping robot")
+    finally:
+        node.stop_robot()
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 if _name_ == '_main_':
