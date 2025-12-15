@@ -1,14 +1,41 @@
 #!/usr/bin/env python3
+import time
+import serial
+
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 
 
 class MovementSubscriber(Node):
-    def __init__(self):
-        super().__init__('movement_subscriber')
+    def _init_(self):
+        super()._init_('movement_subscriber')
 
-        # Subscribe to semantic commands
+        # ─────────────── PARAMETERS ───────────────
+        self.declare_parameter('port', '/dev/ttyACM0')
+        self.declare_parameter('baud', 57600)
+        self.declare_parameter('timeout', 0.1)
+        self.declare_parameter('speed', 30)
+
+        port = self.get_parameter('port').value
+        baud = self.get_parameter('baud').value
+        timeout = self.get_parameter('timeout').value
+        self.speed = int(self.get_parameter('speed').value)
+
+        # ─────────────── SERIAL ───────────────
+        try:
+            self.ser = serial.Serial(port, baudrate=baud, timeout=timeout)
+            time.sleep(2.0)  # OpenCR reset delay
+            self.get_logger().info(
+                f"Connected to OpenCR on {port} @ {baud}"
+            )
+        except Exception as e:
+            self.ser = None
+            self.get_logger().error(
+                f"Failed to open serial {port}: {e}"
+            )
+
+        # ─────────────── SUBSCRIBER ───────────────
         self.subscription = self.create_subscription(
             String,
             'key_cmd',
@@ -16,25 +43,26 @@ class MovementSubscriber(Node):
             10
         )
 
-        # Publish velocity commands for OpenCR bridge
-        self.vel_pub = self.create_publisher(String, 'velocity_cmd', 10)
-
-        # Simple speed parameter (optional)
-        self.declare_parameter('speed', 30)
-        self.speed = int(self.get_parameter('speed').value)
-
         self.get_logger().info(
-            f"MovementSubscriber gestart: key_cmd -> velocity_cmd (speed={self.speed})"
+            f"MovementSubscriber READY (speed={self.speed})"
         )
 
+    # ─────────────── SERIAL SEND ───────────────
     def send_v(self, left: int, right: int):
-        msg = String()
-        msg.data = f"V {left} {right}"
-        self.vel_pub.publish(msg)
-        self.get_logger().info(f"Sent: {msg.data}")
+        if self.ser is None:
+            self.get_logger().error("Serial not available")
+            return
 
+        cmd = f"V {left} {right}\n"
+        try:
+            self.ser.write(cmd.encode())
+            self.get_logger().info(f"> {cmd.strip()}")
+        except Exception as e:
+            self.get_logger().error(f"Serial write failed: {e}")
+
+    # ─────────────── CALLBACK ───────────────
     def callback(self, msg: String):
-        direction = msg.data.strip()
+        direction = msg.data.strip().lower()
         s = self.speed
 
         if direction == "forward":
@@ -45,8 +73,10 @@ class MovementSubscriber(Node):
             self.send_v(s, -s)
         elif direction == "right":
             self.send_v(-s, s)
+        elif direction in ("stop", "idle"):
+            self.send_v(0, 0)
         else:
-            self.get_logger().warn(f"Onbekend commando: {direction}")
+            self.get_logger().warn(f"Unknown command: {direction}")
 
 
 def main(args=None):
@@ -58,3 +88,7 @@ def main(args=None):
         pass
     node.destroy_node()
     rclpy.shutdown()
+
+
+if _name_ == "_main_":
+    main()
